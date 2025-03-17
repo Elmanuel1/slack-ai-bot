@@ -1,0 +1,12 @@
+app:
+  name: passport_ai
+  version: 1.0.0
+  port: 3000
+  host: 0.0.0.0
+  log_level: INFO
+
+slack:
+  mode: socket
+  bot_token: 'test'
+  app_token: 'test'
+  signing_secret: 'test'
