@@ -1,15 +1,27 @@
 from events.event_handler import EventHandler
-
+from agents.langgraph_agent import LangGraphAgent
 import logging
 from slack_bolt import App
+from langchain_core.language_models import BaseChatModel
+from langgraph.checkpoint.memory import MemorySaver
+from config.settings import Settings
+from langchain_core.messages import HumanMessage
+from langgraph.graph import MessagesState
 
 class AppMentionEventHandler(EventHandler):
-    def __init__(self,  app: App):
+    def __init__(self, app: App, settings: Settings, llm: BaseChatModel):
         # Use __name__ for logger to get the module name
         self.logger = logging.getLogger(__name__)
-        self.logger.setLevel(logging.INFO)
+        
         self.app = app
-
+        self.settings = settings
+        
+        # Initialize the LangGraph agent and build its graph
+        self.agent = LangGraphAgent(
+            llm=llm,
+            checkpoint_saver=MemorySaver()
+        )
+        self.workflow = self.agent.build()
 
     def handle(self):
         """Set up the Slack event handler."""
@@ -17,5 +29,37 @@ class AppMentionEventHandler(EventHandler):
         def handle_mention(event, say):
             user = event["user"]
             text = event["text"]
-            self.logger.info(f"Received mention from {user}: {text}")
-            say(f"Hi there, <@{user}>! How can I help you today?")
+            thread_ts = event.get("thread_ts", event.get("ts"))  # Get thread_ts or fallback to message ts
+            self.logger.debug("Received mention from %s: %s", user, text)
+            
+            try:
+                # Create initial state with the message
+                initial_state = MessagesState(
+                    messages=[HumanMessage(content=text)]
+                )
+                self.logger.debug("Initial state: %s", initial_state)
+                
+                # Create config from the event
+                config = {
+                    "configurable": {
+                        "thread_id": thread_ts
+                    }
+                }
+                
+                # Invoke the workflow
+                final_state = self.workflow.invoke(
+                    initial_state,
+                    config
+                )
+                self.logger.debug("Final state: %s", final_state)
+                
+                # Get the response from the final state
+                response = final_state["messages"][-1].content
+                self.logger.debug("Response: %s", response)
+                
+                # Send the response back to Slack in the same thread
+                say(text=response, thread_ts=thread_ts)
+                
+            except Exception as e:
+                self.logger.error("Error processing message: %s", str(e))
+                say(text="I apologize, but I encountered an error processing your message. Please try again later.", thread_ts=thread_ts)

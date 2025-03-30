@@ -10,3 +10,9 @@ slack:
   bot_token: 'test'
   app_token: 'test'
   signing_secret: 'test'
+
+chat:
+  provider: openai
+  model: gpt-4o-mini
+  temperature: 0.0
+  api_key: 'test'

@@ -15,6 +15,17 @@ class AppSettings(BaseSettings):
         env_file_encoding="utf-8"
     )
 
+class ChatSettings(BaseSettings):
+    provider: str = "openai"  # Default to openai
+    api_key: str
+    model: str = "gpt-4-turbo-preview"
+    temperature: float = 0.7
+    model_config = SettingsConfigDict(
+        env_prefix="CHAT_",  # Changed from OPENAI_ to CHAT_
+        env_file=".env",
+        env_file_encoding="utf-8"
+    )
+
 class SlackSettings(BaseSettings):
     bot_token: str
     app_token: str
@@ -29,6 +40,7 @@ class SlackSettings(BaseSettings):
 class Settings(BaseSettings):
     app: AppSettings
     slack: SlackSettings
+    chat: ChatSettings  # Changed from openai to chat
     model_config = SettingsConfigDict(
         env_nested_delimiter="__",
         extra="ignore",
@@ -38,7 +50,6 @@ class Settings(BaseSettings):
 
     def __init__(self, **data):
         # Load YAML configuration
-        logging.info("Data: " + str(data))
         yaml_path = "config.yaml"
         with open(yaml_path, "r") as file:
             yaml_config = yaml.safe_load(file)

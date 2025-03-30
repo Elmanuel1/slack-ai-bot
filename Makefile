@@ -1,5 +1,5 @@
 PYTHON=python3
-VENV_DIR=venv
+VENV_DIR="venv"
 
 .PHONY: venv install activate clean
 
