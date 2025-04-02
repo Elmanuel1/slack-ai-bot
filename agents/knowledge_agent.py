@@ -11,7 +11,16 @@ from documents.document_retriever import DocumentRetriever
 
 
 class KnowledgeAgent:
-    """Agent for handling knowledge base queries."""
+    """Agent for handling knowledge base queries.
+    
+    This agent is responsible for processing user queries that require information
+    from the knowledge base. It uses a document retriever tool to search for
+    relevant information and generates responses based on the retrieved content.
+    
+    The agent implements a graph-based workflow that alternates between generating
+    responses with the LLM and using tools to retrieve information from the
+    knowledge base.
+    """
     
     def __init__(
         self,
@@ -22,9 +31,16 @@ class KnowledgeAgent:
         """Initialize the knowledge agent.
         
         Args:
-            llm: Language model for generating responses
-            checkpoint_saver: Checkpoint saver for state management
-            document_retriever: Document retriever for knowledge base queries
+            llm (BaseChatModel): Language model for generating responses.
+            checkpoint_saver (MemorySaver): Checkpoint saver for state management.
+            document_retriever (DocumentRetriever): Document retriever for knowledge base queries.
+            
+        Example:
+            >>> knowledge_agent = KnowledgeAgent(
+            ...     llm=chat_model,
+            ...     checkpoint_saver=memory_saver,
+            ...     document_retriever=DocumentRetriever(chroma_client)
+            ... )
         """
         self.llm = llm
         self.checkpoint_saver = checkpoint_saver
@@ -39,7 +55,24 @@ class KnowledgeAgent:
         self.knowledge_model = self.llm.bind_tools(self.knowledge_tools)
     
     def knowledge_LLM_node(self, state: MessagesState) -> Command[Literal["tools", END]]:
-        """Process a knowledge base query using the LLM with tools."""
+        """Process a knowledge base query using the LLM with tools.
+        
+        This function processes the user query by prompting the language model
+        to either provide a direct answer or use tools to retrieve information
+        from the knowledge base. It also implements an iteration limit to prevent
+        infinite loops.
+        
+        Args:
+            state (MessagesState): The current state containing messages and iteration count.
+            
+        Returns:
+            Command[Literal["tools", END]]: Command indicating the next node to visit
+                and updates to the state.
+                
+        Example:
+            >>> command = knowledge_agent.knowledge_LLM_node(state)
+            >>> next_node = command.goto  # Either "tools" or END
+        """
         messages = state['messages']
         iteration = state.get('iteration', 0)
         if iteration > 2:
@@ -66,9 +99,32 @@ class KnowledgeAgent:
             return Command(goto=END, update={"messages": [AIMessage(content=f"I encountered an error while searching the knowledge base", error=e)]})
     
     def build(self) -> Graph:
-        """Build and return a compiled graph for this agent."""
+        """Build and return a compiled graph for this agent.
+        
+        Constructs a LangGraph with nodes for the LLM agent and tool execution.
+        The graph implements a workflow that alternates between generating responses
+        and using tools to retrieve information.
+        
+        Returns:
+            Graph: A compiled LangGraph workflow ready for execution.
+            
+        Example:
+            >>> workflow = knowledge_agent.build()
+            >>> result = workflow.invoke({"messages": [HumanMessage(content="What's our policy on X?")]})
+        """
         # Define conditional edge
         def should_use_tools(state):
+            """Determine whether to use tools based on the state.
+            
+            Examines the last message in the state to check if it contains
+            tool calls that need to be executed.
+            
+            Args:
+                state (MessagesState): The current state containing messages.
+                
+            Returns:
+                str: The next node to visit ("agent", "tools", or END).
+            """
             messages = state["messages"]
             if not messages:
                 return "agent"

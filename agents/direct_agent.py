@@ -8,19 +8,53 @@ from config.prompts import DIRECT_AGENT_PROMPT
 import logging
 
 class DirectAgent(BaseAgent):
-    """Agent for handling general queries that don't require specialized knowledge."""
+    """Agent for handling general queries that don't require specialized knowledge.
+    
+    This agent is designed to respond to general user queries that don't fall into
+    specialized categories like incidents or knowledge base queries. It uses a
+    language model with a general-purpose prompt to generate helpful responses.
+    
+    The agent implements a simple workflow that processes general queries and
+    generates contextually relevant responses based on conversation history.
+    """
     
     def __init__(
         self,
         llm: BaseChatModel,
         checkpoint_saver: MemorySaver
     ):
+        """Initialize the direct agent.
+        
+        Args:
+            llm (BaseChatModel): Language model for generating responses.
+            checkpoint_saver (MemorySaver): Checkpoint saver for state management.
+            
+        Example:
+            >>> direct_agent = DirectAgent(
+            ...     llm=chat_model,
+            ...     checkpoint_saver=memory_saver
+            ... )
+        """
         self.llm = llm
         self.checkpoint_saver = checkpoint_saver
         self.logger = logging.getLogger(__name__)
     
     def process_message(self, state: MessagesState) -> MessagesState:
-        """Process a general query."""
+        """Process a general query.
+        
+        Processes a general-purpose query and generates a response using the
+        language model with conversation history for context.
+        
+        Args:
+            state (MessagesState): The current state containing messages.
+            
+        Returns:
+            MessagesState: Updated state with the agent's response appended.
+            
+        Example:
+            >>> updated_state = direct_agent.process_message(state)
+            >>> response = updated_state["messages"][-1].content
+        """
         messages = state["messages"]
         current_message = messages[-1].content
         self.logger.debug("Direct agent processing: %s", current_message)
@@ -49,7 +83,18 @@ class DirectAgent(BaseAgent):
         )
         
     def build(self) -> Graph:
-        """Build and return a compiled graph for this agent."""
+        """Build and return a compiled graph for this agent.
+        
+        Constructs a simple LangGraph with a single node for processing
+        general queries.
+        
+        Returns:
+            Graph: A compiled LangGraph workflow ready for execution.
+            
+        Example:
+            >>> workflow = direct_agent.build()
+            >>> result = workflow.invoke({"messages": [HumanMessage(content="Tell me a joke")]})
+        """
         graph = StateGraph(MessagesState)
         
         graph.set_entry_point("process")
