@@ -9,7 +9,28 @@ from langgraph.graph import MessagesState
 from langgraph.graph import Graph
 
 class AppMentionEventHandler(EventHandler):
+    """Handler for Slack app_mention events.
+    
+    This handler processes mentions of the bot in Slack channels and responds using
+    the configured LangGraph workflow. It converts Slack messages to LangChain
+    message format, processes them through the workflow, and sends responses back
+    to the appropriate thread in Slack.
+    """
+    
     def __init__(self, app: App, settings: Settings, langgraph_workflow: Graph):
+        """Initialize the app mention event handler.
+        
+        Args:
+            app (App): The Slack Bolt app instance.
+            settings (Settings): Configuration settings.
+            langgraph_workflow (Graph): The compiled LangGraph workflow to process messages.
+            
+        Example:
+            >>> app = App(token=settings.slack.bot_token, signing_secret=settings.slack.signing_secret)
+            >>> workflow = agent.build()
+            >>> handler = AppMentionEventHandler(app, settings, workflow)
+            >>> handler.handle()
+        """
         # Use __name__ for logger to get the module name
         self.logger = logging.getLogger(__name__)
         self.app = app
@@ -19,9 +40,23 @@ class AppMentionEventHandler(EventHandler):
         self.workflow = langgraph_workflow
 
     def handle(self):
-        """Set up the Slack event handler."""
+        """Set up the Slack event handler.
+        
+        Registers a callback for the app_mention event that processes
+        mentions of the bot in Slack channels using the LangGraph workflow.
+        """
         @self.app.event("app_mention")
         def handle_mention(event, say):
+            """Process a Slack app_mention event.
+            
+            This function extracts the user, message text, and thread information
+            from the event, processes the message through the LangGraph workflow,
+            and sends the response back to the Slack thread.
+            
+            Args:
+                event (dict): The Slack event data.
+                say (callable): Function to send messages back to Slack.
+            """
             user = event["user"]
             text = event["text"]
             thread_ts = event.get("thread_ts", event.get("ts"))  # Get thread_ts or fallback to message ts
