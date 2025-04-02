@@ -1,6 +1,9 @@
 # Slack AI Bot
 
-A Slack bot that uses LangGraph and LLM capabilities to process messages and provide intelligent responses. The bot can handle different types of queries, retrieve information from a knowledge base, and manage incidents.
+A Slack bot that uses LangGraph and LLM capabilities to process messages and provide intelligent responses. The bot operates in two main components:
+
+1. **Knowledge Base Loader**: Loads documents from Confluence into a vector database
+2. **Slack Bot**: Processes and responds to messages in Slack using the knowledge base
 
 ## Features
 
@@ -13,8 +16,8 @@ A Slack bot that uses LangGraph and LLM capabilities to process messages and pro
 
 - Python 3.9+
 - Slack workspace with admin privileges
-- Access to an LLM provider (default: OpenAI)
-- Confluence workspace (optional, for knowledge base)
+- OpenAI API key (for embeddings and chat models)
+- Confluence workspace (for knowledge base)
 - LangSmith account (optional, for tracing)
 
 ## Installation
@@ -22,120 +25,112 @@ A Slack bot that uses LangGraph and LLM capabilities to process messages and pro
 1. Clone this repository
 2. Install dependencies:
 ```bash
-make install 
-make activate
+pip install -r requirements.txt
 ```
-Run the source command generated from the activate command to activate the vritual environment
-
-3. Configure your environment variables or update the `config.yaml` file (see Configuration section)
-4. Run the bot:
+3. Configure your environment variables or update the `config.yaml` file
+4. Run the knowledge base loader (one-time setup):
+```bash
+python -m knowledge_base.run_job
+```
+5. Start the Slack bot:
 ```bash
 python main.py
 ```
 
 ## Configuration
 
-The bot can be configured through environment variables or by editing the `config.yaml` file. Environment variables will override values in the config file.
+The application uses nested configuration with two configuration methods:
+- YAML file: `config.yaml` (base configuration)
+- Environment variables (override YAML settings)
 
-### Environment Variables
+## Component 1: Knowledge Base Loader
 
-#### App Configuration
-- `APP__NAME`: Name of the application (default: "passport_ai")
-- `APP__VERSION`: Version of the application (default: "1.0.0")
-- `APP__PORT`: Port to run the service on (default: 3000)
-- `APP__HOST`: Host to run the service on (default: "0.0.0.0")
-- `APP__LOG_LEVEL`: Logging level (default: "INFO")
+This component loads documents from Confluence into a vector database for semantic search.
 
-#### Slack Configuration
-- `SLACK__MODE`: Mode for Slack connection - "socket" for local development, "webhook" for production (default: "socket")
-- `SLACK__BOT_TOKEN`: Bot token from Slack (`xoxb-` prefix)
-- `SLACK__APP_TOKEN`: App token from Slack (`xapp-` prefix) - required for Socket Mode
-- `SLACK__SIGNING_SECRET`: Signing secret from Slack app
+### Configuration
 
-#### LLM Provider Configuration. Only OpenAPI is supported for now
-- `LLM__PROVIDER`: LLM provider to use (default: "openai")
-- `LLM__MODEL`: Model to use (default: "gpt-4o-mini")
-- `LLM__TEMPERATURE`: Temperature for generation (default: 0.0)
-- `LLM__API_KEY`: API key for the LLM provider
-- `LLM__EMBEDDINGS_MODEL`: Embeddings model to use (default: "text-embedding-3-large")
+Knowledge base environment variables use the format: `KNOWLEDGE_BASE_SETTING_NAME`
 
-#### LangSmith Tracing
-- `LANGSMITH__TRACING`: Enable LangSmith tracing (default: true)
-- `LANGSMITH__API_KEY`: API key for LangSmith
+Key settings:
+- `KNOWLEDGE_BASE_HOST`: Your Confluence instance URL (e.g. "https://company.atlassian.net")
+- `KNOWLEDGE_BASE_USERNAME`: Confluence username (email)
+- `KNOWLEDGE_BASE_API_TOKEN`: Confluence API token
+- `KNOWLEDGE_BASE_SPACE_KEY`: Confluence space to index (e.g. "TEAM")
+- `KNOWLEDGE_BASE_PERSIST_DIRECTORY`: Where to store vector DB (default: "data/knowledge_base")
+- `KNOWLEDGE_BASE_BATCH_SIZE`: Batch size for processing (default: 100)
+- `KNOWLEDGE_BASE_MAX_PAGES`: Maximum pages to index (default: 1000)
 
-#### Knowledge Base Configuration (Confluence)
-- `KNOWLEDGE__BASE_PERSIST_DIRECTORY`: Directory to store vector embeddings (default: "data/knowledge_base")
-- `KNOWLEDGE__BASE_HOST`: Confluence host URL (e.g., "https://your-domain.atlassian.net")
-- `KNOWLEDGE__BASE_USERNAME`: Confluence username (email)
-- `KNOWLEDGE__BASE_API_TOKEN`: Confluence API token
-- `KNOWLEDGE__BASE_SPACE_KEY`: Confluence space key (default: "PROPWISE")
-- `KNOWLEDGE__BASE_BATCH_SIZE`: Batch size for processing documents (default: 100)
-- `KNOWLEDGE__BASE_MAX_PAGES`: Maximum number of pages to load (default: 1000)
+### Running the Loader
 
-### Slack Configuration Steps
+To load content from Confluence:
 
-1. Create a new Slack app at https://api.slack.com/apps
-2. Under "OAuth & Permissions", add the following bot token scopes:
-   - `app_mentions:read`
-   - `chat:write`
-   - `commands`
-3. Install the app to your workspace
-4. Copy the Bot Token, App Token, and Signing Secret to your config or environment variables
+```bash
+python -m knowledge_base.run_job
+```
 
-### LLM Provider Configuration
+The loader will:
+1. Connect to Confluence and fetch pages
+2. Process and split content into chunks
+3. Generate embeddings using OpenAI
+4. Store everything in a local vector database
 
-The default LLM provider is OpenAI. To use it:
+This needs to be run once initially, and then whenever you want to update the knowledge base.
 
-1. Get an API key from OpenAI
-2. Set `LLM__API_KEY` to your OpenAI API key
-3. Optionally change `LLM__MODEL` to use a different model (default: "gpt-4o-mini")
+## Component 2: Slack Bot
 
-For other providers, update the `LLM__PROVIDER` setting and the appropriate API key.
+This component handles Slack interactions, using the knowledge base to answer questions.
 
-### Knowledge Base Configuration
+### Configuration
 
-The bot uses Confluence as its knowledge source. To set it up:
+Slack bot environment variables use formats:
+- `APP_SETTING_NAME`: Application settings
+- `SLACK_SETTING_NAME`: Slack connection settings
+- `LLM_SETTING_NAME`: Language model settings
+- `LANGSMITH_SETTING_NAME`: LangSmith tracing settings
 
-1. Generate an API token in Confluence
-2. Configure the following settings:
-   - `KNOWLEDGE__BASE_HOST`: Your Confluence URL
-   - `KNOWLEDGE__BASE_USERNAME`: Your Confluence username
-   - `KNOWLEDGE__BASE_API_TOKEN`: Your Confluence API token
-   - `KNOWLEDGE__BASE_SPACE_KEY`: Space key for your knowledge base
+Key settings:
+- `SLACK_BOT_TOKEN`: Bot token from Slack (`xoxb-` prefix)
+- `SLACK_APP_TOKEN`: App token for Socket Mode (`xapp-` prefix)
+- `SLACK_SIGNING_SECRET`: Signing secret from Slack app
+- `SLACK_MODE`: "socket" (local development) or "webhook" (production)
+- `LLM_API_KEY`: OpenAI API key
+- `LLM_MODEL`: Model to use (default: "gpt-4o-mini")
+- `APP_LOG_LEVEL`: Logging level (default: "INFO")
 
-### Logging
+### Setting Up Slack
 
-The default log level is `INFO`. You can change it by setting `APP__LOG_LEVEL` to one of:
-- `DEBUG`
-- `INFO`
-- `WARNING`
-- `ERROR`
-- `CRITICAL`
+1. Create a Slack app at https://api.slack.com/apps
+2. Add scopes: `app_mentions:read`, `chat:write`, `commands`
+3. Install app to your workspace
+4. Copy tokens to your config
+
+### Running the Bot
+
+Start the Slack bot with:
+
+```bash
+python main.py
+```
 
 ## Usage
 
-Once configured and running, tag the bot in any Slack channel it's been invited to:
+Once configured and running, tag the bot in any Slack channel:
 
 ```
 @your-bot-name Tell me about our refund policy
 ```
 
-The bot will automatically:
+The bot will:
 1. Analyze your message
-2. Route it to the appropriate agent
-3. Process the request (search knowledge base, handle incident, etc.)
-4. Respond in the thread
+2. Search the knowledge base
+3. Format and return relevant information
 
 ## Project Structure
 
-- `agents/`: Contains different agent implementations
-  - `base_agent.py`: Base class for all agents
-  - `langgraph_agent.py`: Main orchestrator agent
-  - `knowledge_agent.py`: Agent for knowledge base queries
-  - `incident_agent.py`: Agent for incident management
-  - `direct_agent.py`: Agent for general queries
-- `slack/`: Slack integration code
-- `events/`: Event handlers for different message types
-- `documents/`: Knowledge base integration
-- `config/`: Configuration utilities
+- `agents/`: Agent implementations (orchestrator, knowledge, incident)
+- `knowledge_base/`: Confluence loader and vector database components
+- `slack/`: Slack connection and event handling
+- `events/`: Event handler implementations
+- `documents/`: Document retrieval
+- `config/`: Configuration
 - `utils/`: Utility functions 
