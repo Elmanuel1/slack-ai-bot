@@ -3,12 +3,12 @@ from typing import Dict, Any
 from langgraph.graph import Graph, StateGraph, END, MessagesState, START
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
-from langchain_core.language_models import BaseChatModel
 from .base_agent import BaseAgent
 from .incident_agent import IncidentAgent
 from .knowledge_agent import KnowledgeAgent
+from langchain_core.language_models import BaseChatModel
 from langgraph.checkpoint.memory import MemorySaver
-from .direct_agent import DirectAgent
+#from .direct_agent import DirectAgent
 from config.prompts import ROUTING_PROMPT
 
 class LangGraphAgent(BaseAgent):
@@ -17,13 +17,16 @@ class LangGraphAgent(BaseAgent):
     def __init__(
         self, 
         llm: BaseChatModel,
-        checkpoint_saver: MemorySaver
+        checkpoint_saver: MemorySaver,
+        incident_workflow: Graph,
+        knowledge_workflow: Graph,
+        #direct_workflow: Graph
     ):
         self.llm = llm
         self.checkpoint_saver = checkpoint_saver
-        self.incident_agent = IncidentAgent(llm=llm, checkpoint_saver=checkpoint_saver)
-        self.knowledge_agent = KnowledgeAgent(llm=llm, checkpoint_saver=checkpoint_saver)
-        self.direct_agent = DirectAgent(llm=llm, checkpoint_saver=checkpoint_saver)
+        self.incident_workflow = incident_workflow
+        self.knowledge_workflow = knowledge_workflow
+        #self.direct_workflow = direct_workflow
         self.logger = logging.getLogger(__name__)
         
         # Initialize the graph
@@ -54,13 +57,13 @@ class LangGraphAgent(BaseAgent):
             }).strip().lower()
             self.logger.debug("Raw routing decision: '%s'", route)
             
-            # Parse routing decision - force to direct if not exact match
+            # Parse routing decision - force to knowledge if not exact match
             if route == "incident":
                 next_step = "incident"
             elif route == "knowledge":
                 next_step = "knowledge"
             else:
-                next_step = "direct"  # Default everything else to direct
+                next_step = "knowledge"  # Default everything else to knowledge
             
             self.logger.debug("Next step: %s", next_step)
             
@@ -74,9 +77,9 @@ class LangGraphAgent(BaseAgent):
         self.graph.add_node("main_agent", main_llm_node)
         
         # Add compiled graphs from each agent
-        self.graph.add_node("incident", self.incident_agent.build())
-        self.graph.add_node("knowledge", self.knowledge_agent.build())
-        self.graph.add_node("direct", self.direct_agent.build())
+        self.graph.add_node("incident", self.incident_workflow)
+        self.graph.add_node("knowledge", self.knowledge_workflow)
+        #self.graph.add_node("direct", self.direct_workflow)
         
         # Add edge from START to main_agent
         self.graph.add_edge(START, "main_agent")
@@ -88,7 +91,7 @@ class LangGraphAgent(BaseAgent):
             {
                 "incident": "incident",
                 "knowledge": "knowledge",
-                "direct": "direct",
+                #"direct": "direct",
                 END: END
             }
         )

@@ -2,20 +2,24 @@
 import logging
 
 import logging
+import sys
+
+from config.settings import AppSettings
 
 class Logger:
-    def __init__(self, settings):
+    def __init__(self, settings: AppSettings):
         self.settings = settings
         self.configure_logger()
 
     def configure_logger(self):
-        log_level = getattr(logging, self.settings.app.log_level.upper(), logging.INFO)
-
         logging.basicConfig(
-            level=log_level,
-            format="[%(asctime)s] %(levelname)s - %(message)s",
-            handlers=[logging.StreamHandler()],
+            level=getattr(logging, self.settings.app.log_level.upper(), logging.INFO),
+            format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+            handlers=[
+                logging.StreamHandler(sys.stdout)
+            ]
         )
+
 
     def get_logger(self):
         return logging.getLogger()

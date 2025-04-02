@@ -11,8 +11,21 @@ slack:
   app_token: 'test'
   signing_secret: 'test'
 
-chat:
+langsmith:
+  tracing: true
+  api_key: 'test'
+
+llm:
   provider: openai
   model: gpt-4o-mini
   temperature: 0.0
+  embeddings_model: "text-embedding-3-large"
   api_key: 'test'
+
+knowledge_base:
+  persist_directory: "data/knowledge_base"
+  host: "https://assetiq.atlassian.net"
+  username: "assetiq-user@useassetiq.com"
+  api_token: "test"
+  space_key: "PROPWISE"
+  batch_size: 100

@@ -1,5 +1,4 @@
 from events.event_handler import EventHandler
-from agents.langgraph_agent import LangGraphAgent
 import logging
 from slack_bolt import App
 from langchain_core.language_models import BaseChatModel
@@ -7,21 +6,17 @@ from langgraph.checkpoint.memory import MemorySaver
 from config.settings import Settings
 from langchain_core.messages import HumanMessage
 from langgraph.graph import MessagesState
+from langgraph.graph import Graph
 
 class AppMentionEventHandler(EventHandler):
-    def __init__(self, app: App, settings: Settings, llm: BaseChatModel):
+    def __init__(self, app: App, settings: Settings, langgraph_workflow: Graph):
         # Use __name__ for logger to get the module name
         self.logger = logging.getLogger(__name__)
-        
         self.app = app
         self.settings = settings
         
         # Initialize the LangGraph agent and build its graph
-        self.agent = LangGraphAgent(
-            llm=llm,
-            checkpoint_saver=MemorySaver()
-        )
-        self.workflow = self.agent.build()
+        self.workflow = langgraph_workflow
 
     def handle(self):
         """Set up the Slack event handler."""
