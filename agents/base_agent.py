@@ -15,8 +15,3 @@ class BaseAgent(ABC, GraphBuilder):
     def get_response(self, state: MessagesState) -> str:
         """Get the response from the current state."""
         return state["messages"][-1].content
-    
-    @abstractmethod
-    def build(self) -> Graph:
-        """Build and return a compiled graph for this agent."""
-        pass

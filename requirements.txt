@@ -1,5 +1,4 @@
 slack_bolt==1.22.0
-python-dotenv==1.0.1
 pydantic-settings==2.8.1
 PyYAML==6.0.2
 langchain==0.3.21
@@ -7,3 +6,8 @@ langgraph==0.3.21
 langchain-core==0.3.48
 langchain-openai==0.3.8
 langgraph-checkpoint==2.0.23
+pytest==8.3.5
+atlassian-python-api==4.0.0
+langchain-chroma==0.2.2
+chromadb==0.6.3
+langchain-community==0.3.20
