@@ -13,7 +13,8 @@ def mock_settings():
         provider="openai",
         model="gpt-4",
         temperature=0.0,
-        api_key="test-key"
+        api_key="test-key",
+        embeddings_model="text-embedding-3-large"
     )
 
 
@@ -80,7 +81,8 @@ def test_empty_providers():
         provider="any",
         model="test",
         temperature=0.0,
-        api_key="test"
+        api_key="test",
+        embeddings_model="text-embedding-3-large"
     )
     
     # Act & Assert

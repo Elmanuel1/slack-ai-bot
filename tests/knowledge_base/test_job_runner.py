@@ -5,7 +5,7 @@ from langchain_core.documents import Document
 from knowledge_base.job_runner import KnowledgeBaseJobRunner, create_confluence_job
 from knowledge_base.knowledge_base_loader import KnowledgeBaseLoader
 from knowledge_base.knowledge_base_writer import KnowledgeBaseWriter
-from config.settings import knowledgeBaseSettings, Settings
+from config.settings import KnowledgeBaseSettings, Settings
 
 @pytest.fixture
 def mock_loader():
@@ -27,7 +27,7 @@ def mock_writer():
 
 @pytest.fixture
 def mock_settings():
-    settings = Mock(spec=knowledgeBaseSettings)
+    settings = Mock(spec=KnowledgeBaseSettings)
     settings.space_key = "TEST"
     settings.batch_size = 2
     return settings
@@ -44,7 +44,7 @@ def job_runner(mock_loader, mock_writer, mock_settings):
 def test_settings():
     """Create complete mock settings with llm attribute"""
     settings = Mock(spec=Settings)
-    settings.knowledge_base = Mock(spec=knowledgeBaseSettings)
+    settings.knowledge_base = Mock(spec=KnowledgeBaseSettings)
     settings.knowledge_base.space_key = "TEST"
     settings.knowledge_base.batch_size = 50
     settings.knowledge_base.host = "test.atlassian.net"

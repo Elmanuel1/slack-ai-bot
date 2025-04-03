@@ -1,7 +1,7 @@
 import pytest
 import os
 from unittest.mock import Mock
-from config.settings import Settings, knowledgeBaseSettings
+from config.settings import Settings, KnowledgeBaseSettings
 
 @pytest.fixture(autouse=True)
 def mock_env_vars():
@@ -18,7 +18,7 @@ def mock_env_vars():
 def test_settings():
     """Create test settings with mocked values."""
     settings = Mock(spec=Settings)
-    settings.knowledge_base = Mock(spec=knowledgeBaseSettings)
+    settings.knowledge_base = Mock(spec=KnowledgeBaseSettings)
     settings.knowledge_base.url = "https://test.atlassian.net"
     settings.knowledge_base.username = "test@example.com"
     settings.knowledge_base.api_token = "test-token"

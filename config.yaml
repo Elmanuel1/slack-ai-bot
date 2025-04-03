@@ -1,5 +1,5 @@
 app:
-  name: passport_ai
+  name: slackbot
   version: 1.0.0
   port: 3000
   host: 0.0.0.0
@@ -10,6 +10,7 @@ slack:
   bot_token: 'test'
   app_token: 'test'
   signing_secret: 'test'
+  port: 3000
 
 langsmith:
   tracing: true
@@ -25,7 +26,8 @@ llm:
 knowledge_base:
   persist_directory: "data/knowledge_base"
   host: "https://assetiq.atlassian.net"
-  username: "assetiq-user@useassetiq.com"
+  path: ""
+  username: "aribooluwatoba@gmail.com"
   api_token: "test"
   space_key: "PROPWISE"
   batch_size: 100

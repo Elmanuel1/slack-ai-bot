@@ -8,7 +8,7 @@ from knowledge_base.knowledge_base_loader import KnowledgeBaseLoader
 from knowledge_base.knowledge_base_writer import KnowledgeBaseWriter
 from knowledge_base.confluence_loader import ConfluenceLoader
 from knowledge_base.chroma_writer import ChromaWriter
-from config.settings import Settings, knowledgeBaseSettings
+from config.settings import Settings, KnowledgeBaseSettings
 from langchain_chroma.vectorstores import Chroma
 from langchain_openai import OpenAIEmbeddings
 from atlassian import Confluence
@@ -19,7 +19,7 @@ class KnowledgeBaseJobRunner:
         self,
         loader: KnowledgeBaseLoader,
         writer: KnowledgeBaseWriter,
-        settings: knowledgeBaseSettings,
+        settings: KnowledgeBaseSettings,
     ):
         self.loader = loader
         self.writer = writer

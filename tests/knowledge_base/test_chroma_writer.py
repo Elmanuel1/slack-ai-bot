@@ -6,7 +6,7 @@ from langchain_chroma.vectorstores import Chroma
 from knowledge_base.chroma_writer import ChromaWriter
 from knowledge_base.document_splitter import DocumentSplitter
 from knowledge_base.token_document_splitter import TokenDocumentSplitter
-from config.settings import Settings, knowledgeBaseSettings
+from config.settings import Settings, KnowledgeBaseSettings
 import logging
 
 @pytest.fixture
@@ -16,7 +16,7 @@ def mock_chroma_client():
 @pytest.fixture
 def mock_settings():
     settings = Mock(spec=Settings)
-    settings.knowledge_base = Mock(spec=knowledgeBaseSettings)
+    settings.knowledge_base = Mock(spec=KnowledgeBaseSettings)
     settings.knowledge_base.url = "https://test.atlassian.net"
     return settings
 

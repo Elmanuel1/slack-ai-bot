@@ -16,22 +16,21 @@ from langchain_chroma import Chroma
 from langchain_openai import OpenAIEmbeddings
 from config.logging import Logger
 if __name__ == "__main__":
-    
 
-     settings = Settings()
+    settings = Settings()
 
-     Logger(settings).configure_logger()
+    Logger(settings).configure_logger()
 
-     os.environ["LANGSMITH_TRACING"] = settings.langsmith.tracing
-     os.environ["LANGSMITH_API_KEY"] = settings.langsmith.api_key
+    os.environ["LANGSMITH_TRACING"] = str(settings.langsmith.tracing)
+    os.environ["LANGSMITH_API_KEY"] = settings.langsmith.api_key
 
-     app = App(token=settings.slack.bot_token, signing_secret=settings.slack.signing_secret)
+    app = App(token=settings.slack.bot_token, signing_secret=settings.slack.signing_secret)
      # Create LLM
-     llm = init_chat_model(settings.llm)
+    llm = init_chat_model(settings.llm)
 
-     memory_saver = MemorySaver()
+    memory_saver = MemorySaver()
 
-     chroma_client = Chroma(
+    chroma_client = Chroma(
             persist_directory=settings.knowledge_base.persist_directory,
     
             collection_name=settings.knowledge_base.space_key,
@@ -42,7 +41,7 @@ if __name__ == "__main__":
          )
      
      # Initialize event handlers with LLM
-     langgraph_workflow = LangGraphAgent(
+    langgraph_workflow = LangGraphAgent(
           llm=llm, 
 
           checkpoint_saver=memory_saver, 
@@ -57,9 +56,10 @@ if __name__ == "__main__":
 
      ).build()
 
-     slack_event_handler = SlackEventsHandler(
+    slack_event_handler = SlackEventsHandler(
          settings, 
          [AppMentionEventHandler(app, settings, langgraph_workflow)], 
          app
      )
-     slack_event_handler.start()
+    
+    slack_event_handler.start()

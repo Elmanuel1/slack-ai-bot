@@ -1,102 +1,96 @@
-import logging
-from typing import Optional, Dict, Any
-from pydantic import BaseModel, Field, ConfigDict
-import yaml
+from typing import Optional, Type, Tuple
+from pydantic import Field, ConfigDict
 from pydantic_settings import BaseSettings
+from pydantic_settings.sources import YamlConfigSettingsSource, PydanticBaseSettingsSource
 
-class AppSettings(BaseSettings):
-    name: str
-    version: str = "1.0.0"
-    port: int = 8080
-    host: str = "0.0.0.0"
-    log_level: str = "INFO"
+class BaseAppSettings(BaseSettings):
+    """Base settings class with common functionality for all settings classes.
+    This class is used to define the common settings for all settings classes.
+    It is also used to define the custom sources for the settings.
+    Environment variables have the highest priority.
+    .env file has the next priority.
+    config.yaml file has the next priority. This will be used for local development and properties that do not need to be changed frequently
+    """
     
-    model_config = ConfigDict(
-        env_prefix="APP_",
-        env_file=".env",
-        env_file_encoding="utf-8"
-    )
+    @classmethod
+    def settings_customise_sources(
+        cls,
+        settings_cls: Type[BaseSettings],
+        init_settings: PydanticBaseSettingsSource,
+        env_settings: PydanticBaseSettingsSource,
+        dotenv_settings: PydanticBaseSettingsSource,
+        file_secret_settings: PydanticBaseSettingsSource,
+    ) -> Tuple[PydanticBaseSettingsSource, ...]:
+        yaml_source = YamlConfigSettingsSource(
+            settings_cls=settings_cls, 
+            yaml_file="config.yaml"
+        )
+        
+        return (
+            env_settings,
+            init_settings,
+            file_secret_settings,
+            dotenv_settings,
+            yaml_source
+        )
+    
+    @classmethod
+    def model_config_with_prefix(cls, prefix: str) -> ConfigDict:
+        return ConfigDict(
+            extra="ignore",
+            env_nested_delimiter="_",
+            env_file=".env",
+            env_file_encoding="utf-8",
+            case_sensitive=False,
+            env_prefix=prefix,
+        )
 
-class LLMSettings(BaseSettings):
-    """Settings for chat model configuration."""
-    provider: str = Field(default="openai", description="The chat provider to use")
-    model: str = Field(default="gpt-4", description="The model to use")
-    temperature: float = Field(default=0.0, description="The temperature for model outputs")
+class AppSettings(BaseAppSettings):
+    name: str = Field(description="The name of the application")  
+    version: str = Field(description="The version of the application")
+    port: int = Field(description="The port to run the application on")
+    host: str = Field(description="The host to run the application on")
+    log_level: str = Field(description="The log level to use")
+    
+    model_config = BaseAppSettings.model_config_with_prefix("app_")
+
+class LLMSettings(BaseAppSettings):
+    provider: str = Field(description="The chat provider to use")
+    model: str = Field(description="The model to use")
+    temperature: float = Field(description="The temperature for model outputs")
     api_key: str = Field(description="The API key for the chat provider")
-    embeddings_model: str = Field(default="text-embedding-3-large", description="The embeddings model to use")
+    embeddings_model: str = Field(description="The embeddings model to use")
+    model_config = BaseAppSettings.model_config_with_prefix("llm_")
 
-    model_config = ConfigDict(
-        env_prefix="LLM_",
-        env_file=".env",
-        env_file_encoding="utf-8",
-        extra="ignore"
-    )
-
-class SlackSettings(BaseSettings):
+class SlackSettings(BaseAppSettings):
     bot_token: str = Field(description="Slack bot token")
     app_token: str = Field(description="Slack app token")
     mode: str = Field(description="Slack mode. socket or webhook")
     signing_secret: str = Field(description="Slack signing secret")
+    port: int = Field(description="Slack port")
     
-    model_config = ConfigDict(
-        env_prefix="SLACK_",
-        env_file=".env",
-        env_file_encoding="utf-8"
-    )
+    model_config = BaseAppSettings.model_config_with_prefix("slack_")
 
-class knowledgeBaseSettings(BaseSettings):
-    """Knowledge base settings."""
-    persist_directory: str = "data/knowledge_base"
-    host: str = Field(description="Host of the Knowledge Base (e.g., https://your-domain.atlassian.net)")
-    path: str = Field( description="Base path for Knowledge Base")
+class KnowledgeBaseSettings(BaseAppSettings):
+    persist_directory: str = Field(description="Directory to store the knowledge base. Useful for local development.")
+    host: str = Field(description="Host of the Knowledge Base")
+    path: str = Field(description="Base path for Knowledge Base")
     username: str = Field(description="Username for the Knowledge Base")
     api_token: str = Field(description="API token for the Knowledge Base")
     space_key: str = Field(description="Space key for the Knowledge Base")
-    max_pages: int = Field(default=1000, description="Maximum number of pages to load")
-    batch_size: int = Field(default=100, description="Batch size for the Knowledge Base")
-    model_config = ConfigDict(
-        env_prefix="KNOWLEDGE_BASE_",
-        env_file=".env",
-        env_file_encoding="utf-8"
-    )
+    batch_size: int = Field(description="Batch size for the Knowledge Base")
+    
+    model_config = BaseAppSettings.model_config_with_prefix("knowledge_base_")
 
-class LangsmithSettings(BaseSettings):
-    """Langsmith settings."""
-    tracing: bool = Field(default=True, description="Enable tracing")
+class LangsmithSettings(BaseAppSettings):
+    tracing: Optional[bool] = Field(default=True)
     api_key: str = Field(description="API key for Langsmith")
-    model_config = ConfigDict(
-        env_prefix="LANGSMITH_",
-        env_file=".env",
-        env_file_encoding="utf-8",
-        extra="ignore"
-    )
+    
+    model_config = BaseAppSettings.model_config_with_prefix("langsmith_")
 
-
-class Settings(BaseSettings):
-    """Main application settings."""
+class Settings(BaseAppSettings):
     app: AppSettings = Field(default_factory=AppSettings)
     slack: SlackSettings = Field(default_factory=SlackSettings)
     llm: LLMSettings = Field(default_factory=LLMSettings)
     langsmith: LangsmithSettings = Field(default_factory=LangsmithSettings)
-    knowledge_base: knowledgeBaseSettings = Field(default_factory=knowledgeBaseSettings)
-
-    model_config = ConfigDict(
-        env_file=".env",
-        env_file_encoding="utf-8",
-        extra="ignore"
-    )
-
-    def __init__(self, **data: Any) -> None:
-        # Load YAML configuration
-        yaml_path = "config.yaml"
-        with open(yaml_path, "r") as file:
-            yaml_config = yaml.safe_load(file)
-
-        # Merge YAML config with provided data
-        # This ensures YAML is the baseline but can be overridden
-        merged_data: Dict[str, Any] = {}
-        merged_data.update(yaml_config)
-        merged_data.update(data)
-
-        # Let Pydantic handle everything, including env vars
-        super().__init__(**merged_data)
+    knowledge_base: KnowledgeBaseSettings = Field(default_factory=KnowledgeBaseSettings)
