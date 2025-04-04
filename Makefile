@@ -12,9 +12,10 @@ install: venv
 	$(VENV_DIR)/bin/pip install --upgrade pip
 	$(VENV_DIR)/bin/pip install -r requirements.txt
 
+# Run tests with coverage reporting
 test: activate
-	$(VENV_DIR)/bin/pip install -r requirements-test.txt
-	pytest
+	$(VENV_DIR)/bin/pip install -r tests/requirements-test.txt
+	pytest --cov=. --cov-report=term --cov-report=html
 
 # Activate the virtual environment (for reference, cannot be run from Makefile)
 activate: install
@@ -23,6 +24,8 @@ activate: install
 # Remove the virtual environment
 clean:
 	rm -rf $(VENV_DIR)
+	rm -rf htmlcov
+	rm -f .coverage
 
 # Run the main.py file
 run:

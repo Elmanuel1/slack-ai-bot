@@ -1120,3 +1120,93 @@ if __name__ == "__main__":
     )
     
     slack_event_handler.start() 
+
+## 10. Testing
+
+### 10.1 Running Tests
+
+The system includes comprehensive test coverage for all components. Tests shall be run regularly to ensure system reliability and prevent regressions.
+
+#### 10.1.1 Running All Tests
+
+To run all tests:
+
+```bash
+# Using the Makefile (recommended)
+make test
+
+# Or using pytest directly
+python -m pytest
+```
+
+#### 10.1.2 Running Specific Test Categories
+
+Tests are organized by component for more focused testing:
+
+```bash
+# Run only agent tests
+python -m pytest tests/agents/
+
+# Run only knowledge base tests
+python -m pytest tests/knowledge_base/
+
+# Run only utility tests
+python -m pytest tests/utils/
+```
+
+#### 10.1.3 Running Individual Tests
+
+Run specific test files or functions for more targeted testing:
+
+```bash
+# Run tests in a specific file
+python -m pytest tests/agents/test_direct_agent.py
+
+# Run a specific test function
+python -m pytest tests/agents/test_direct_agent.py::test_process_message
+
+# Run tests with specific name pattern
+python -m pytest -k "knowledge"
+```
+
+#### 10.1.4 Test Coverage
+
+To run tests with coverage reporting:
+
+```bash
+# Run tests with coverage
+make test-coverage
+
+# Or using pytest directly
+python -m pytest --cov=. --cov-report=term
+```
+
+### 10.2 Test Environment Setup
+
+The test environment shall be configured automatically by the test suite, but requires:
+
+1. A valid `.env.test` file with test-specific configuration
+2. Mock credentials for external services 
+3. Test data fixtures located in `tests/fixtures/`
+
+### 10.3 Integration Testing
+
+For integration tests that require environment setup:
+
+```bash
+# Run integration tests
+make test-integration
+
+# Or using pytest with markers
+python -m pytest -m integration
+```
+
+### 10.4 Writing New Tests
+
+When writing new tests:
+
+1. Follow the existing test pattern in corresponding test directory
+2. Use appropriate fixtures for resources
+3. Mock external dependencies using `pytest-mock`
+4. For async tests, use the `@pytest.mark.asyncio` decorator
+5. Create appropriate test data fixtures as needed 

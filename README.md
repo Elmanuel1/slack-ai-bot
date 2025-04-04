@@ -116,6 +116,40 @@ The bot will:
 2. Search the knowledge base
 3. Format and return relevant information
 
+## Testing
+
+The project includes comprehensive test coverage for all components.
+
+### Running Tests
+
+Run the test suite with:
+
+```bash
+make test
+```
+
+This will:
+1. Run all tests with coverage measurement
+2. Generate a terminal report showing coverage percentages
+3. Create an HTML report in the `htmlcov/` directory
+4. Open the HTML report with `htmlcov/index.html` for detailed analysis
+
+### Running Specific Tests
+
+```bash
+# Run tests in a specific directory
+python -m pytest tests/agents/
+
+# Run a specific test file
+python -m pytest tests/agents/test_direct_agent.py
+
+# Run a specific test function
+python -m pytest tests/agents/test_direct_agent.py::test_process_message
+
+# Run tests matching a pattern
+python -m pytest -k "knowledge"
+```
+
 ## Project Structure
 
 - `agents/`: Agent implementations (orchestrator, knowledge, incident)
