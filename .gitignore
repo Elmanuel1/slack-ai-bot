@@ -11,4 +11,4 @@ venv/
 .idea/
 .vscode/
 data/
-tests/**/__pycache__/** 
+**/__pycache__/** 

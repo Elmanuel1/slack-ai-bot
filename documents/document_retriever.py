@@ -53,7 +53,7 @@ class DocumentRetriever:
         self.retriever = vectorstore.as_retriever(search_kwargs={"k": k})
         
 
-    def retrieve_documents(self, query: str) -> List[Dict[str, Any]]:
+    async def retrieve_documents(self, query: str) -> List[Dict[str, Any]]:
         """Retrieve relevant documents based on a query.
 
         This method searches the vector store for documents that are semantically
@@ -82,7 +82,7 @@ class DocumentRetriever:
             self.logger.debug(f"Retrieving Query: {query}")
 
             # Get documents from the retriever
-            docs = self.retriever.invoke(query)
+            docs = await self.retriever.ainvoke(query)
             # Format the documents for return   
             results = []
             for i, doc in enumerate(docs):
@@ -126,10 +126,15 @@ class DocumentRetriever:
             >>> tools = [tool]
             >>> llm_with_tools = llm.bind_tools(tools)
         """
+        # Create a sync wrapper for the async retrieve_documents function
+        async def retrieve_documents_wrapper(query: str) -> List[Dict[str, Any]]:
+            return await self.retrieve_documents(query)
+            
         return StructuredTool.from_function(
-            func=self.retrieve_documents,
+            func=retrieve_documents_wrapper,
             name="retrieve_documents",
             description="Retrieve relevant documents from the knowledge base",
             args_schema=RetrieveDocumentsInput,
+            coroutine=retrieve_documents_wrapper,
             return_direct=False
         )

@@ -1,0 +1,36 @@
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+python_files = "test_*.py"
+python_classes = "Test*"
+python_functions = "test_*"
+testpaths = ["tests"]
+
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "slack-ai-bot"
+version = "0.1.0"
+description = "AI bot for Slack with multiple specialized agents"
+readme = "README.md"
+requires-python = ">=3.9"
+license = {text = "MIT"}
+dependencies = [
+    "langchain",
+    "langchain-openai",
+    "slack-bolt",
+    "langgraph",
+    "pydantic>=2.0",
+    "pyyaml"
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "pytest-asyncio",
+    "pytest-cov",
+    "black",
+    "isort",
+    "mypy"
+] 

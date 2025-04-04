@@ -39,11 +39,11 @@ class DirectAgent(BaseAgent):
         self.checkpoint_saver = checkpoint_saver
         self.logger = logging.getLogger(__name__)
     
-    def process_message(self, state: MessagesState) -> MessagesState:
-        """Process a general query.
+    async def process_message(self, state: MessagesState) -> MessagesState:
+        """Process a general message with the LLM.
         
-        Processes a general-purpose query and generates a response using the
-        language model with conversation history for context.
+        Takes an incoming user message and generates a helpful response
+        using the language model directly (without tools).
         
         Args:
             state (MessagesState): The current state containing messages.
@@ -52,7 +52,7 @@ class DirectAgent(BaseAgent):
             MessagesState: Updated state with the agent's response appended.
             
         Example:
-            >>> updated_state = direct_agent.process_message(state)
+            >>> updated_state = await direct_agent.process_message(state)
             >>> response = updated_state["messages"][-1].content
         """
         messages = state["messages"]
@@ -68,7 +68,7 @@ class DirectAgent(BaseAgent):
         
         # Get response from LLM with full message history
         chat_chain = chat_prompt | self.llm
-        response = chat_chain.invoke({
+        response = await chat_chain.ainvoke({
             "question": current_message,
             "history": messages[:-1]  # Pass all previous messages as history
         })
@@ -93,7 +93,7 @@ class DirectAgent(BaseAgent):
             
         Example:
             >>> workflow = direct_agent.build()
-            >>> result = workflow.invoke({"messages": [HumanMessage(content="Tell me a joke")]})
+            >>> result = await workflow.ainvoke({"messages": [HumanMessage(content="Tell me a joke")]})
         """
         graph = StateGraph(MessagesState)
         

@@ -26,6 +26,26 @@ class BaseAgent(ABC, GraphBuilder):
     build a graph.
     """
     
+    @property
+    def key(self) -> str:
+        """Return the unique key for this agent type.
+        
+        This key is used for routing in the agent system. By default, it returns
+        the lowercase version of the class name, but subclasses can override this
+        to provide a custom key.
+        
+        Returns:
+            str: A unique string identifier for this agent type.
+            
+        Example:
+            >>> class MyCustomAgent(BaseAgent):
+            ...     pass
+            >>> agent = MyCustomAgent()
+            >>> agent.key
+            'mycustomagent'
+        """
+        return self.__class__.__name__.lower()
+    
     def get_response(self, state: MessagesState) -> str:
         """Get the response from the current state.
         

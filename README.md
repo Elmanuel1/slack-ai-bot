@@ -15,7 +15,7 @@ A Slack bot that uses LangGraph and LLM capabilities to process messages and pro
 ## Requirements
 
 - Python 3.9+
-- Slack workspace with admin privileges
+- Slack app credentials that has the correct priviledges to receive app mentions
 - OpenAI API key (for embeddings and chat models)
 - Confluence workspace (for knowledge base)
 - LangSmith account (optional, for tracing)
@@ -23,18 +23,30 @@ A Slack bot that uses LangGraph and LLM capabilities to process messages and pro
 ## Installation
 
 1. Clone this repository
-2. Install dependencies:
+2. Install dependencies and active a virtual environment:
 ```bash
-pip install -r requirements.txt
+make activate
 ```
 3. Configure your environment variables or update the `config.yaml` file
+```bash
+export SLACK_BOT_TOKEN=xxxx
+export SLACK_APP_TOKEN=xxxx
+export SLACK_SIGNING_SECRET=xxx
+export LLM_API_KEY=xxx
+export LANGSMITH_API_KEY=xxx
+export KNOWLEDGE_BASE_USERNAME=a@b.com
+export KNOWLEDGE_BASE_API_TOKEN=xxx
+export LLM_API_KEY=xxx
+ 
+```
 4. Run the knowledge base loader (one-time setup):
 ```bash
-python -m knowledge_base.run_job
+make load_knowledge_base
+
 ```
 5. Start the Slack bot:
 ```bash
-python main.py
+make run
 ```
 
 ## Configuration
@@ -65,7 +77,7 @@ Key settings:
 To load content from Confluence:
 
 ```bash
-python -m knowledge_base.run_job
+make load_knowledge_base
 ```
 
 The loader will:
@@ -82,12 +94,6 @@ This component handles Slack interactions, using the knowledge base to answer qu
 
 ### Configuration
 
-Slack bot environment variables use formats:
-- `APP_SETTING_NAME`: Application settings
-- `SLACK_SETTING_NAME`: Slack connection settings
-- `LLM_SETTING_NAME`: Language model settings
-- `LANGSMITH_SETTING_NAME`: LangSmith tracing settings
-
 Key settings:
 - `SLACK_BOT_TOKEN`: Bot token from Slack (`xoxb-` prefix)
 - `SLACK_APP_TOKEN`: App token for Socket Mode (`xapp-` prefix)
@@ -96,21 +102,6 @@ Key settings:
 - `LLM_API_KEY`: OpenAI API key
 - `LLM_MODEL`: Model to use (default: "gpt-4o-mini")
 - `APP_LOG_LEVEL`: Logging level (default: "INFO")
-
-### Setting Up Slack
-
-1. Create a Slack app at https://api.slack.com/apps
-2. Add scopes: `app_mentions:read`, `chat:write`, `commands`
-3. Install app to your workspace
-4. Copy tokens to your config
-
-### Running the Bot
-
-Start the Slack bot with:
-
-```bash
-python main.py
-```
 
 ## Usage
 
@@ -124,6 +115,40 @@ The bot will:
 1. Analyze your message
 2. Search the knowledge base
 3. Format and return relevant information
+
+## Testing
+
+The project includes comprehensive test coverage for all components.
+
+### Running Tests
+
+Run the test suite with:
+
+```bash
+make test
+```
+
+This will:
+1. Run all tests with coverage measurement
+2. Generate a terminal report showing coverage percentages
+3. Create an HTML report in the `htmlcov/` directory
+4. Open the HTML report with `htmlcov/index.html` for detailed analysis
+
+### Running Specific Tests
+
+```bash
+# Run tests in a specific directory
+python -m pytest tests/agents/
+
+# Run a specific test file
+python -m pytest tests/agents/test_direct_agent.py
+
+# Run a specific test function
+python -m pytest tests/agents/test_direct_agent.py::test_process_message
+
+# Run tests matching a pattern
+python -m pytest -k "knowledge"
+```
 
 ## Project Structure
 

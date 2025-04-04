@@ -13,7 +13,7 @@ from langgraph.types import Command
 
 # Create a real tool function for testing instead of a mock
 @tool
-def mock_retrieve_documents(query: str) -> list:
+async def mock_retrieve_documents(query: str) -> list:
     """Mock function to retrieve documents."""
     return [
         {
@@ -30,7 +30,7 @@ def mock_retrieve_documents(query: str) -> list:
 @pytest.fixture
 def mock_llm():
     mock = MagicMock(spec=BaseChatModel)
-    mock.invoke.return_value = AIMessage(content="This is a test response")
+    mock.ainvoke.return_value = AIMessage(content="This is a test response")
     return mock
 
 @pytest.fixture
@@ -78,7 +78,8 @@ def test_build(knowledge_agent):
         graph = knowledge_agent.build()
         assert graph is not None
 
-def test_knowledge_llm_node(knowledge_agent, mock_llm):
+@pytest.mark.asyncio
+async def test_knowledge_llm_node(knowledge_agent, mock_llm):
     """Test the LLM node processing."""
     # Create a tool call response
     tool_call_response = AIMessage(
@@ -89,7 +90,12 @@ def test_knowledge_llm_node(knowledge_agent, mock_llm):
             "id": "call_12345"
         }]
     )
-    knowledge_agent.knowledge_model.invoke.return_value = tool_call_response
+    
+    # Create async function that returns the response
+    async def mock_ainvoke(*args, **kwargs):
+        return tool_call_response
+        
+    knowledge_agent.knowledge_model.ainvoke = mock_ainvoke
     
     # Setup test state
     state = {
@@ -97,18 +103,24 @@ def test_knowledge_llm_node(knowledge_agent, mock_llm):
     }
     
     # Get the command result
-    command = knowledge_agent.knowledge_LLM_node(state)
+    command = await knowledge_agent.knowledge_LLM_node(state)
     
     # Verify tool node is used next
     assert command.goto == "tools"
     assert "messages" in command.update
     assert command.update["messages"][0] == tool_call_response
 
-def test_knowledge_llm_node_no_tool_call(knowledge_agent, mock_llm):
+@pytest.mark.asyncio
+async def test_knowledge_llm_node_no_tool_call(knowledge_agent, mock_llm):
     """Test LLM node with no tool calls."""
     # Create a direct response (no tool calls)
     direct_response = AIMessage(content="Here's an answer without tool use")
-    knowledge_agent.knowledge_model.invoke.return_value = direct_response
+    
+    # Create async function that returns the response
+    async def mock_ainvoke(*args, **kwargs):
+        return direct_response
+        
+    knowledge_agent.knowledge_model.ainvoke = mock_ainvoke
     
     # Setup test state
     state = {
@@ -116,25 +128,29 @@ def test_knowledge_llm_node_no_tool_call(knowledge_agent, mock_llm):
     }
     
     # Get the command result
-    command = knowledge_agent.knowledge_LLM_node(state)
+    command = await knowledge_agent.knowledge_LLM_node(state)
     
     # Should go to END since no tool calls
     assert command.goto == END
     assert "messages" in command.update
     assert command.update["messages"][0] == direct_response
 
-def test_knowledge_llm_node_error_handling(knowledge_agent):
+@pytest.mark.asyncio
+async def test_knowledge_llm_node_error_handling(knowledge_agent):
     """Test error handling in LLM node."""
     # Setup test state
     state = {
         "messages": [HumanMessage(content="How to write Python tests?")]
     }
     
-    # Make the knowledge model raise an exception
-    knowledge_agent.knowledge_model.invoke.side_effect = Exception("Test error")
+    # Create async function that raises an exception
+    async def mock_error_ainvoke(*args, **kwargs):
+        raise Exception("Test error")
+        
+    knowledge_agent.knowledge_model.ainvoke = mock_error_ainvoke
     
     # Get the command result
-    command = knowledge_agent.knowledge_LLM_node(state)
+    command = await knowledge_agent.knowledge_LLM_node(state)
     
     # Check that we go to END
     assert command.goto == END
