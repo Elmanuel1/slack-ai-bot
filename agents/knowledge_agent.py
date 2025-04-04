@@ -8,9 +8,9 @@ from config.prompts import KNOWLEDGE_AGENT_PROMPT
 from langgraph.prebuilt import ToolNode
 from langgraph.types import Command
 from documents.document_retriever import DocumentRetriever
+from agents.base_agent import BaseAgent
 
-
-class KnowledgeAgent:
+class KnowledgeAgent(BaseAgent):
     """Agent for handling knowledge base queries.
     
     This agent is responsible for processing user queries that require information
@@ -54,7 +54,7 @@ class KnowledgeAgent:
         # Bind tools to model
         self.knowledge_model = self.llm.bind_tools(self.knowledge_tools)
     
-    def knowledge_LLM_node(self, state: MessagesState) -> Command[Literal["tools", END]]:
+    async def knowledge_LLM_node(self, state: MessagesState) -> Command[Literal["tools", END]]:
         """Process a knowledge base query using the LLM with tools.
         
         This function processes the user query by prompting the language model
@@ -88,7 +88,7 @@ class KnowledgeAgent:
             ]
             
             # Get response from model
-            response = self.knowledge_model.invoke(temp_messages)
+            response = await self.knowledge_model.ainvoke(temp_messages)
             
             next_node = "tools" if response.tool_calls else END
 
@@ -110,7 +110,7 @@ class KnowledgeAgent:
             
         Example:
             >>> workflow = knowledge_agent.build()
-            >>> result = workflow.invoke({"messages": [HumanMessage(content="What's our policy on X?")]})
+            >>> result = await workflow.ainvoke({"messages": [HumanMessage(content="What's our policy on X?")]})
         """
         # Define conditional edge
         def should_use_tools(state):

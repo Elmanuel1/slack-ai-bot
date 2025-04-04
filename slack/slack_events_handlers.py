@@ -1,7 +1,8 @@
 import logging
+import asyncio
 
-from slack_bolt import App
-from slack_bolt.adapter.socket_mode import SocketModeHandler
+from slack_bolt.async_app import AsyncApp
+from slack_bolt.adapter.socket_mode.async_handler import AsyncSocketModeHandler
 
 from config.settings import Settings
 from events.event_handler import EventHandler
@@ -16,16 +17,16 @@ class SlackEventsHandler:
     event handler classes.
     """
     
-    def __init__(self, settings: Settings, event_handlers: list[EventHandler], app: App):
+    def __init__(self, settings: Settings, event_handlers: list[EventHandler], app: AsyncApp):
         """Initialize the Slack events handler.
         
         Args:
             settings (Settings): Configuration settings for the Slack bot.
             event_handlers (list[EventHandler]): List of specialized event handlers.
-            app (App): The Slack Bolt app instance.
+            app (AsyncApp): The Slack Bolt async app instance.
             
         Example:
-            >>> app = App(token=settings.slack.bot_token, signing_secret=settings.slack.signing_secret)
+            >>> app = AsyncApp(token=settings.slack.bot_token, signing_secret=settings.slack.signing_secret)
             >>> handlers = [AppMentionEventHandler(app, settings, agent)]
             >>> slack_handler = SlackEventsHandler(settings, handlers, app)
             >>> slack_handler.start()
@@ -35,7 +36,7 @@ class SlackEventsHandler:
         self.app = app
         self.event_handlers = event_handlers
 
-    def setup_events(self):
+    async def setup_events(self):
         """Define Slack event listeners.
         
         Registers all event handlers with the Slack app by calling each handler's
@@ -44,6 +45,23 @@ class SlackEventsHandler:
         """
         for handler in self.event_handlers:
             handler.handle()
+
+    async def _start_socket_mode(self):
+        """Start the bot in Socket Mode.
+        
+        Creates and starts the AsyncSocketModeHandler for Socket Mode operation.
+        """
+        self.logger.info("Starting Slack bot in Socket Mode")
+        handler = AsyncSocketModeHandler(self.app, self.settings.slack.app_token)
+        await handler.start_async()
+        
+    async def _start_bolt_app(self):
+        """Start the bot in Bolt App Mode.
+        
+        Starts the Slack Bolt app on the configured port.
+        """
+        self.logger.info("Starting Slack bot in Bolt App Mode")
+        await self.app.start_async(port=self.settings.slack.port)
 
     def start(self):
         """Start the Slack bot.
@@ -54,14 +72,20 @@ class SlackEventsHandler:
         Socket Mode is used for development and doesn't require public endpoints,
         while Bolt App Mode is used for production with webhook endpoints.
         """
-        self.setup_events()
-
-        if self.settings.slack.mode == "socket":
-            self.logger.info("Starting Slack bot in Socket Mode")
-            # Start the Slack bot in Socket Mode
-            handler = SocketModeHandler(self.app, self.settings.slack.app_token)
-            handler.start()
-            return
-
-        # Start the Slack bot in Bolt App Mode
-        self.app.start(self.settings.slack.port)
+        # Create and get the event loop
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        
+        # Define the main async function
+        async def main():
+            # Setup events
+            await self.setup_events()
+            
+            # Start the bot in the appropriate mode
+            if self.settings.slack.mode == "socket":
+                await self._start_socket_mode()
+            else:
+                await self._start_bolt_app()
+        
+        # Run the async main function until complete
+        loop.run_until_complete(main())

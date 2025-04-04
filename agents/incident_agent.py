@@ -42,31 +42,19 @@ class IncidentAgent(BaseAgent):
     def process_message(self, state: MessagesState) -> MessagesState:
         """Process an incident message.
         
-        Analyzes the incident report in the input message and generates a
-        response with guidance on how to handle the incident.
+        Takes an incoming message about an incident and generates a response
+        acknowledging the incident with a pessimistic tone.
         
         Args:
             state (MessagesState): The current state containing messages.
             
         Returns:
-            MessagesState: Updated state with the agent's response appended.
-            
-        Example:
-            >>> updated_state = incident_agent.process_message(state)
-            >>> response = updated_state["messages"][-1].content
+            MessagesState: Updated state with the new response message.
         """
         messages = state["messages"]
         current_message = messages[-1].content
-        self.logger.debug("Incident agent processing: %s", current_message)
         
-        # Create chat prompt for incident responses
-        chat_prompt = ChatPromptTemplate.from_messages([
-            ("system", INCIDENT_AGENT_PROMPT),
-            MessagesPlaceholder(variable_name="history"),
-            ("human", "{incident}")
-        ])
-        
-        # Process incident
+        # Pessimistic response to the incident
         response = f"*sigh* Another incident to handle. Let me look into: {current_message}. Not that incidents ever end well, but I'll try my best."
         self.logger.debug("Incident agent response: %s", response)
         
@@ -77,7 +65,7 @@ class IncidentAgent(BaseAgent):
                 AIMessage(content=response)  # Add our response
             ]
         )
-        
+
     def build(self) -> Graph:
         """Build and return a compiled graph for this agent.
         
@@ -89,7 +77,7 @@ class IncidentAgent(BaseAgent):
             
         Example:
             >>> workflow = incident_agent.build()
-            >>> result = workflow.invoke({"messages": [HumanMessage(content="We have an outage")]})
+            >>> result = await workflow.ainvoke({"messages": [HumanMessage(content="We have an outage")]})
         """
         graph = StateGraph(MessagesState)
         

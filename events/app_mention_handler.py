@@ -1,6 +1,6 @@
 from events.event_handler import EventHandler
 import logging
-from slack_bolt import App
+from slack_bolt.async_app import AsyncApp
 from langchain_core.language_models import BaseChatModel
 from langgraph.checkpoint.memory import MemorySaver
 from config.settings import Settings
@@ -12,22 +12,22 @@ class AppMentionEventHandler(EventHandler):
     """Handler for Slack app_mention events.
     
     This handler processes mentions of the bot in Slack channels and responds using
-    the configured LangGraph workflow. It converts Slack messages to LangChain
+    the configured workflow. It converts Slack messages to LangChain
     message format, processes them through the workflow, and sends responses back
     to the appropriate thread in Slack.
     """
     
-    def __init__(self, app: App, settings: Settings, langgraph_workflow: Graph):
+    def __init__(self, app: AsyncApp, settings: Settings, workflow: Graph):
         """Initialize the app mention event handler.
         
         Args:
-            app (App): The Slack Bolt app instance.
+            app (AsyncApp): The Slack Bolt async app instance.
             settings (Settings): Configuration settings.
-            langgraph_workflow (Graph): The compiled LangGraph workflow to process messages.
+            workflow (Graph): The compiled workflow to process messages.
             
         Example:
-            >>> app = App(token=settings.slack.bot_token, signing_secret=settings.slack.signing_secret)
-            >>> workflow = agent.build()
+            >>> app = AsyncApp(token=settings.slack.bot_token, signing_secret=settings.slack.signing_secret)
+            >>> workflow = main_agent.build()
             >>> handler = AppMentionEventHandler(app, settings, workflow)
             >>> handler.handle()
         """
@@ -36,21 +36,21 @@ class AppMentionEventHandler(EventHandler):
         self.app = app
         self.settings = settings
         
-        # Initialize the LangGraph agent and build its graph
-        self.workflow = langgraph_workflow
+        # Store the workflow
+        self.workflow = workflow
 
     def handle(self):
         """Set up the Slack event handler.
         
         Registers a callback for the app_mention event that processes
-        mentions of the bot in Slack channels using the LangGraph workflow.
+        mentions of the bot in Slack channels using the workflow.
         """
         @self.app.event("app_mention")
-        def handle_mention(event, say):
+        async def handle_mention(event, say):
             """Process a Slack app_mention event.
             
             This function extracts the user, message text, and thread information
-            from the event, processes the message through the LangGraph workflow,
+            from the event, processes the message through the workflow,
             and sends the response back to the Slack thread.
             
             Args:
@@ -76,8 +76,8 @@ class AppMentionEventHandler(EventHandler):
                     }
                 }
                 
-                # Invoke the workflow
-                final_state = self.workflow.invoke(
+                # Invoke the workflow asynchronously
+                final_state = await self.workflow.ainvoke(
                     initial_state,
                     config
                 )
@@ -88,8 +88,8 @@ class AppMentionEventHandler(EventHandler):
                 self.logger.debug("Response: %s", response)
                 
                 # Send the response back to Slack in the same thread
-                say(text=response, thread_ts=thread_ts)
+                await say(text=response, thread_ts=thread_ts)
                 
             except Exception as e:
-                self.logger.error("Error processing message: %s", str(e))
-                say(text="I apologize, but I encountered an error processing your message. Please try again later.", thread_ts=thread_ts)
+                self.logger.error("Error processing message:", e)
+                await say(text="I apologize, but I encountered an error processing your message. Please try again later.", thread_ts=thread_ts)
